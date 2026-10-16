@@ -2,6 +2,7 @@
 import {
   actualizarSerieAdmin, cargarSeries, cerrarSesion, iniciarSesion, rolDeSesion, type CambiosSerie,
 } from "./datos";
+import { calendarioATexto, textoACalendario } from "./fechas";
 import { esc, normalizarBusqueda } from "./render";
 import type { Serie } from "./types";
 
@@ -43,7 +44,7 @@ function fila(s: Serie): string {
       <label>Total temporada<input name="total" type="number" min="1" inputmode="numeric" value="${num(s.total)}"></label>
       <label>Total de todas<input name="totalTodas" type="number" min="1" inputmode="numeric" value="${num(s.totalTodas)}"></label>
       <label>Próximo cap.<input name="nextEp" type="number" min="1" inputmode="numeric" value="${num(s.nextEp)}"></label>
-      <label class="adm-cuando">Cuándo<input name="nextWhen" type="text" placeholder="dom 18 oct, 10:00" value="${esc(s.nextWhen ?? "")}"></label>
+      <label class="adm-cuando">Cuándo<input name="nextWhen" type="datetime-local" value="${textoACalendario(s.nextWhen)}"></label>
       <div class="adm-acciones"><button type="submit">Guardar</button><span class="adm-msg" role="status"></span></div>
     </form>`;
 }
@@ -129,7 +130,7 @@ function leerCambios(form: HTMLFormElement, s: Serie): CambiosSerie | string {
   const totalTodas = entero("totalTodas", "Total de todas");
   const nextEp = entero("nextEp", "Próximo cap.");
   for (const v of [total, totalTodas, nextEp]) if (typeof v === "string") return v;
-  const nextWhen = campo("nextWhen") || null;
+  const nextWhen = calendarioATexto(campo("nextWhen"));
   if ((nextEp == null) !== (nextWhen == null)) return "El próximo capítulo y su fecha van juntos: llena los dos o deja ambos vacíos.";
   if (typeof total === "number" && typeof totalTodas === "number" && totalTodas < total) {
     return "El total de todas las temporadas no puede ser menor que el de la temporada.";
