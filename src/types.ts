@@ -31,10 +31,14 @@ export interface Serie {
   detalle: boolean;
   avail?: null;
   manual?: boolean;      // el progreso viene de una actualización manual
+  descartada?: boolean;  // el usuario la quitó de su lista y de la priorización
 }
 
-export type Filtro = "all" | "cont" | "prov" | "det" | "dub" | "fin" | "new" | "next";
+export type Filtro = "all" | "cont" | "prov" | "det" | "dub" | "fin" | "new" | "next" | "desc";
 export type Orden = "prioridad" | "lista" | "add-rec" | "add-ant" | "falta" | "nombre";
 
 /** id de la serie → capítulos vistos */
 export type MapaProgreso = Record<string, number>;
+
+/** id de la serie → descartada */
+export type MapaDescartadas = Record<string, boolean>;

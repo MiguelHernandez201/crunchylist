@@ -4,9 +4,10 @@ import { TEMPORADA } from "./config";
 import { ordenar, recalcularPrioridades } from "./prioridad";
 import { filtrar, normalizarBusqueda, renderLista, renderResumen } from "./render";
 import {
-  seriesEnCache, progresoEnCache, cargarSeries, cargarProgreso, guardarProgreso, escucharProgreso,
+  seriesEnCache, progresoEnCache, descartadasEnCache, cargarSeries, cargarProgreso, cargarDescartadas,
+  guardarProgreso, guardarDescartada, escucharProgreso, escucharDescartadas,
 } from "./datos";
-import type { Filtro, MapaProgreso, Orden, Serie } from "./types";
+import type { Filtro, MapaDescartadas, MapaProgreso, Orden, Serie } from "./types";
 
 interface Estado {
   series: Serie[];
@@ -39,12 +40,31 @@ function aplicarProgreso(mapa: MapaProgreso): void {
   recalcularPrioridades(estado.series);
 }
 
+function aplicarDescartadas(mapa: MapaDescartadas): void {
+  estado.series.forEach(s => { if (s.id in mapa) s.descartada = mapa[s.id]; });
+}
+
 function render(): void {
+  const activas = estado.series.filter(s => !s.descartada);
+  const descartadas = estado.series.length - activas.length;
   const items = ordenar(filtrar(estado.series, estado), estado.orden);
   renderLista($("list"), items, estado);
-  renderResumen($("summary"), estado.series);
+  renderResumen($("summary"), activas);
+  $("chip-desc").textContent = descartadas ? `Descartadas (${descartadas})` : "Descartadas";
   if (estado.series.length) {
-    $("sub").textContent = `Las ${estado.series.length} series de tu watchlist. El chip DOB ES marca doblaje al español disponible.`;
+    $("sub").textContent = `Las ${activas.length} series de tu watchlist. El chip DOB ES marca doblaje al español disponible.`;
+  }
+}
+
+async function cambiarDescartada(s: Serie, descartada: boolean): Promise<void> {
+  aplicarDescartadas({ [s.id]: descartada });
+  render();
+  try {
+    await guardarDescartada(s.id, s.t, descartada);
+    aviso(descartada ? `Descartada: ${s.t}. La encuentras en el filtro "Descartadas".` : `Restaurada: ${s.t}.`);
+  } catch (e) {
+    console.error(e);
+    aviso("No se pudo guardar en la base de datos; quedó guardado solo en este navegador.", true);
   }
 }
 
@@ -56,14 +76,16 @@ async function iniciar(): Promise<void> {
   if (cache.length) {
     estado.series = cache;
     aplicarProgreso(progresoEnCache());
+    aplicarDescartadas(descartadasEnCache());
   }
   render();
 
   // 2. Refrescar desde Supabase
   try {
-    const [series, progreso] = await Promise.all([cargarSeries(), cargarProgreso()]);
+    const [series, progreso, descartadas] = await Promise.all([cargarSeries(), cargarProgreso(), cargarDescartadas()]);
     estado.series = series;
     aplicarProgreso(progreso);
+    aplicarDescartadas(descartadas);
     aviso("");
   } catch (e) {
     console.error(e);
@@ -77,6 +99,10 @@ async function iniciar(): Promise<void> {
   // 3. Cambios hechos desde otro dispositivo
   escucharProgreso((id, vistos) => {
     aplicarProgreso({ [id]: vistos });
+    render();
+  });
+  escucharDescartadas((id, descartada) => {
+    aplicarDescartadas({ [id]: descartada });
     render();
   });
 }
@@ -124,6 +150,22 @@ document.addEventListener("click", async ev => {
       console.error(e);
       aviso("No se pudo guardar en la base de datos; quedó guardado solo en este navegador.", true);
     }
+    return;
+  }
+
+  const descartar = destino.closest<HTMLElement>(".descartar");
+  if (descartar) {
+    const s = estado.series.find(x => x.id === descartar.dataset.id);
+    if (s && confirm(`¿Descartar «${s.t}»?\n\nDejará de aparecer en tu lista y en la priorización. Podrás restaurarla desde el filtro "Descartadas".`)) {
+      await cambiarDescartada(s, true);
+    }
+    return;
+  }
+
+  const restaurar = destino.closest<HTMLElement>(".restaurar");
+  if (restaurar) {
+    const s = estado.series.find(x => x.id === restaurar.dataset.id);
+    if (s) await cambiarDescartada(s, false);
     return;
   }
 

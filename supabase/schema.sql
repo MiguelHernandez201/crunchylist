@@ -44,6 +44,26 @@ create policy "progreso inserta con el link" on public.progreso
 create policy "progreso actualiza con el link" on public.progreso
   for update to anon, authenticated using (true) with check (true);
 
+-- Series descartadas: el usuario las quita de su lista y de la priorización.
+-- No se borra nada: "restaurar" pone descartada = false. Mismo modelo de acceso que progreso (release 0.1).
+create table if not exists public.descartadas (
+  id          text primary key references public.series(id) on delete cascade,
+  titulo      text,
+  descartada  boolean not null default true,
+  actualizado timestamptz not null default now()
+);
+alter table public.descartadas enable row level security;
+grant select, insert, update on public.descartadas to anon, authenticated;
+drop policy if exists "descartadas lectura"  on public.descartadas;
+drop policy if exists "descartadas inserta"  on public.descartadas;
+drop policy if exists "descartadas actualiza" on public.descartadas;
+create policy "descartadas lectura" on public.descartadas
+  for select to anon, authenticated using (true);
+create policy "descartadas inserta" on public.descartadas
+  for insert to anon, authenticated with check (true);
+create policy "descartadas actualiza" on public.descartadas
+  for update to anon, authenticated using (true) with check (true);
+
 -- Administración del catálogo -------------------------------------------------
 -- Solo los usuarios listados en public.admins pueden editar series. El rol anon nunca escribe.
 -- Alta de un admin (después de crearlo en Authentication → Users):
@@ -112,5 +132,15 @@ begin
     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'progreso'
   ) then
     alter publication supabase_realtime add table public.progreso;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'descartadas'
+  ) then
+    alter publication supabase_realtime add table public.descartadas;
   end if;
 end $$;

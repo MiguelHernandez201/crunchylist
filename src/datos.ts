@@ -1,14 +1,16 @@
 // Acceso a datos: Supabase como fuente de verdad y localStorage como caché para abrir rápido o sin conexión.
 import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
-import type { MapaProgreso, Serie } from "./types";
+import type { MapaDescartadas, MapaProgreso, Serie } from "./types";
 
 export const sb = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
 
 const CLAVE_SERIES = "cl_series_v1";
 const CLAVE_PROG = "cl_progreso_v1";
+const CLAVE_DESC = "cl_descartadas_v1";
 
 interface FilaSerie { id: string; thumb: string | null; data: Omit<Serie, "id" | "thumb"> }
 interface FilaProgreso { id: string; vistos: number }
+interface FilaDescartada { id: string; descartada: boolean }
 
 function leerLocal<T>(clave: string): T | null {
   try { return JSON.parse(localStorage.getItem(clave) || "null") as T | null; } catch { return null; }
@@ -19,6 +21,8 @@ function escribirLocal(clave: string, valor: unknown): void {
 
 export const seriesEnCache = (): Serie[] => leerLocal<Serie[]>(CLAVE_SERIES) || [];
 export const progresoEnCache = (): MapaProgreso => leerLocal<MapaProgreso>(CLAVE_PROG) || {};
+
+export const descartadasEnCache = (): MapaDescartadas => leerLocal<MapaDescartadas>(CLAVE_DESC) || {};
 
 export async function cargarSeries(): Promise<Serie[]> {
   const { data, error } = await sb.from("series").select("id,thumb,data").returns<FilaSerie[]>();
@@ -36,6 +40,32 @@ export async function cargarProgreso(): Promise<MapaProgreso> {
   const mapa: MapaProgreso = Object.fromEntries(data.map(d => [d.id, d.vistos]));
   escribirLocal(CLAVE_PROG, mapa);
   return mapa;
+}
+
+export async function cargarDescartadas(): Promise<MapaDescartadas> {
+  const { data, error } = await sb.from("descartadas").select("id,descartada").returns<FilaDescartada[]>();
+  if (error) throw error;
+  const mapa: MapaDescartadas = Object.fromEntries(data.map(d => [d.id, d.descartada]));
+  escribirLocal(CLAVE_DESC, mapa);
+  return mapa;
+}
+
+export async function guardarDescartada(id: string, titulo: string, descartada: boolean): Promise<void> {
+  const mapa = descartadasEnCache();
+  mapa[id] = descartada;
+  escribirLocal(CLAVE_DESC, mapa);
+  const { error } = await sb.from("descartadas").upsert({ id, titulo, descartada, actualizado: new Date().toISOString() });
+  if (error) throw error;
+}
+
+export function escucharDescartadas(alCambiar: (id: string, descartada: boolean) => void): RealtimeChannel {
+  return sb
+    .channel("descartadas")
+    .on<FilaDescartada>("postgres_changes", { event: "*", schema: "public", table: "descartadas" }, p => {
+      const fila = p.new as Partial<FilaDescartada>;
+      if (fila.id != null && typeof fila.descartada === "boolean") alCambiar(fila.id, fila.descartada);
+    })
+    .subscribe();
 }
 
 export async function guardarProgreso(id: string, titulo: string, vistos: number): Promise<void> {
