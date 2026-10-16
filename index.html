@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CrunchyList</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+</head>
+<body>
+<div class="wrap">
+  <h1>Mi watchlist de Crunchyroll</h1>
+  <p class="sub" id="sub">Cargando series…</p>
+
+  <div class="summary" id="summary"></div>
+
+  <details class="leyenda">
+    <summary>Cómo se ordena la prioridad</summary>
+    <ol>
+      <li>Temporada actual, con doblaje al español, empezada</li>
+      <li>Temporada actual, con doblaje al español, sin empezar</li>
+      <li>Temporada actual, sin doblaje ni anuncio</li>
+      <li>Antigua, con doblaje al español, empezada</li>
+      <li>Antigua, con doblaje al español, sin empezar</li>
+      <li>Antigua, sin doblaje, empezada</li>
+      <li>Antigua, sin doblaje, sin empezar</li>
+      <li>Temporada actual, doblaje anunciado pero aún no disponible</li>
+      <li>Al día</li>
+      <li>Finalizada</li>
+    </ol>
+    <p><b>Empates dentro de una misma regla,</b> en este orden:</p>
+    <ol>
+      <li>Menos capítulos pendientes por ver. Una serie en 3/4 (falta 1) va antes que una en 4/25 (faltan 21).</li>
+      <li>Si sigue el empate, la que agregaste antes: a más antigua, más prioridad.</li>
+    </ol>
+    <p>Las series sin total conocido quedan al final de su regla, porque no se puede saber cuántos capítulos les faltan.</p>
+    <p>“Al día” y “finalizada” se evalúan primero, porque no tienen nada pendiente por ver.</p>
+    <p><b>Qué cuenta como doblaje:</b> que el audio de la serie incluya español, leído en su página de Crunchyroll. Cuentan por igual el latino y el castellano. El badge “Sub | Dob” del watchlist no sirve: también marca series dobladas solo al inglés.</p>
+    <p><b>Qué cuenta como temporada actual:</b> que el último episodio publicado sea del <span id="temp-desde"></span> en adelante, o sea que la serie siga sacando capítulos. Ese dato sale de la página de cada serie en Crunchyroll.</p>
+    <p>Las marcadas <b>sin verificar</b> aún usan el artículo de la temporada, que no lista todos los estrenos.</p>
+  </details>
+
+  <div class="search">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
+    <input id="q" type="search" placeholder="Buscar por nombre…" aria-label="Buscar serie por nombre" autocomplete="off">
+    <button id="limpiar" type="button" aria-label="Limpiar búsqueda" hidden>×</button>
+  </div>
+
+  <div class="tabs" role="group" aria-label="Filtrar">
+    <button class="chip" data-f="all" aria-pressed="true">Todas</button>
+    <button class="chip" data-f="cont" aria-pressed="false">Con progreso</button>
+    <button class="chip" data-f="prov" aria-pressed="false">Sin verificar</button>
+    <button class="chip" data-f="det" aria-pressed="false">Con detalle</button>
+    <button class="chip" data-f="dub" aria-pressed="false">Con doblaje</button>
+    <button class="chip" data-f="fin" aria-pressed="false">Finalizadas</button>
+    <button class="chip" data-f="new" aria-pressed="false">Sin empezar</button>
+    <button class="chip" data-f="next" aria-pressed="false">Emiten esta semana</button>
+  </div>
+
+  <div class="orden">
+    <label for="sort">Ordenar por</label>
+    <select id="sort">
+      <option value="prioridad">Prioridad</option>
+      <option value="lista">Orden del watchlist</option>
+      <option value="add-rec">Añadido: más reciente</option>
+      <option value="add-ant">Añadido: más antiguo</option>
+      <option value="falta">Episodios que me faltan</option>
+      <option value="nombre">Nombre (A-Z)</option>
+    </select>
+  </div>
+
+  <p class="aviso" id="aviso" role="status" aria-live="polite"></p>
+
+  <div class="list" id="list"></div>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

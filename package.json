@@ -1,0 +1,21 @@
+{
+  "name": "crunchylist",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "typecheck": "tsc",
+    "preview": "vite preview",
+    "db:apply": "node --env-file=.env.local scripts/db-apply.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.109.0"
+  },
+  "devDependencies": {
+    "pg": "^8.23.1",
+    "typescript": "^7.0.2",
+    "vite": "^6.4.4"
+  }
+}
