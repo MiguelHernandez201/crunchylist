@@ -44,6 +44,66 @@ create policy "progreso inserta con el link" on public.progreso
 create policy "progreso actualiza con el link" on public.progreso
   for update to anon, authenticated using (true) with check (true);
 
+-- Administración del catálogo -------------------------------------------------
+-- Solo los usuarios listados en public.admins pueden editar series. El rol anon nunca escribe.
+-- Alta de un admin (después de crearlo en Authentication → Users):
+--   insert into public.admins (user_id) values ('<uuid del usuario>');
+create table if not exists public.admins (
+  user_id uuid primary key references auth.users(id) on delete cascade
+);
+alter table public.admins enable row level security;
+grant select on public.admins to authenticated;
+drop policy if exists "admin ve su fila" on public.admins;
+create policy "admin ve su fila" on public.admins
+  for select to authenticated using (user_id = auth.uid());
+
+create or replace function public.es_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.admins where user_id = auth.uid())
+$$;
+
+-- Edita solo campos permitidos de series.data. Devuelve el objeto resultante.
+create or replace function public.admin_actualizar_serie(p_id text, p_cambios jsonb) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  k text;
+  v jsonb;
+  resultado jsonb;
+begin
+  if not public.es_admin() then
+    raise exception 'No autorizado' using errcode = '42501';
+  end if;
+  if p_cambios is null or jsonb_typeof(p_cambios) <> 'object' then
+    raise exception 'Cambios inválidos';
+  end if;
+  for k, v in select * from jsonb_each(p_cambios) loop
+    if k in ('total', 'totalTodas', 'nextEp') then
+      if jsonb_typeof(v) not in ('number', 'null') or (jsonb_typeof(v) = 'number' and ((v::text)::numeric < 1 or (v::text)::numeric <> trunc((v::text)::numeric))) then
+        raise exception 'El campo % debe ser un entero positivo o vacío', k;
+      end if;
+    elsif k = 'nextWhen' then
+      if jsonb_typeof(v) not in ('string', 'null') then
+        raise exception 'El campo nextWhen debe ser texto o vacío';
+      end if;
+    else
+      raise exception 'Campo no editable: %', k;
+    end if;
+  end loop;
+  update public.series
+     set data = data || p_cambios, actualizado = now()
+   where id = p_id
+   returning data into resultado;
+  if resultado is null then
+    raise exception 'Serie no encontrada: %', p_id;
+  end if;
+  return resultado;
+end $$;
+
+revoke all on function public.es_admin() from public, anon;
+revoke all on function public.admin_actualizar_serie(text, jsonb) from public, anon;
+grant execute on function public.es_admin() to authenticated;
+grant execute on function public.admin_actualizar_serie(text, jsonb) to authenticated;
+
 -- Realtime: cambios de progreso se reflejan en otras pestañas/dispositivos abiertos.
 do $$
 begin

@@ -1,4 +1,5 @@
 import "./style.css";
+import { abrirAdmin, montarAdmin } from "./admin";
 import { TEMPORADA } from "./config";
 import { ordenar, recalcularPrioridades } from "./prioridad";
 import { filtrar, normalizarBusqueda, renderLista, renderResumen } from "./render";
@@ -80,6 +81,25 @@ async function iniciar(): Promise<void> {
   });
 }
 
+// --- Vista de administración (#admin) ---
+
+function aplicarVista(): void {
+  const admin = location.hash === "#admin";
+  $("vista-lista").hidden = admin;
+  $("vista-admin").hidden = !admin;
+  if (admin) void abrirAdmin();
+}
+
+montarAdmin($("vista-admin"), {
+  volver: () => { location.hash = ""; },
+  alCambiar: (id, cambios) => {
+    const s = estado.series.find(x => x.id === id);
+    if (s) { Object.assign(s, cambios); recalcularPrioridades(estado.series); }
+  },
+});
+$("btn-admin").addEventListener("click", () => { location.hash = "admin"; });
+window.addEventListener("hashchange", () => { aplicarVista(); if (location.hash !== "#admin") render(); });
+
 // --- Eventos ---
 
 document.addEventListener("click", async ev => {
@@ -142,4 +162,5 @@ document.querySelectorAll<HTMLButtonElement>(".chip").forEach(b => b.addEventLis
   render();
 }));
 
+aplicarVista();
 iniciar();

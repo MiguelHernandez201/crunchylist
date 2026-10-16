@@ -2,7 +2,7 @@
 import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import type { MapaProgreso, Serie } from "./types";
 
-const sb = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+export const sb = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
 
 const CLAVE_SERIES = "cl_series_v1";
 const CLAVE_PROG = "cl_progreso_v1";
@@ -54,4 +54,35 @@ export function escucharProgreso(alCambiar: (id: string, vistos: number) => void
       if (fila.id != null && typeof fila.vistos === "number") alCambiar(fila.id, fila.vistos);
     })
     .subscribe();
+}
+
+// --- Administración (requiere sesión de un usuario listado en public.admins) ---
+
+export type CambiosSerie = Partial<Pick<Serie, "total" | "totalTodas" | "nextEp" | "nextWhen">>;
+
+export type RolSesion = "admin" | "sin-permiso" | "sin-sesion";
+
+export async function rolDeSesion(): Promise<RolSesion> {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return "sin-sesion";
+  const { data, error } = await sb.from("admins").select("user_id").maybeSingle();
+  if (error) throw error;
+  return data ? "admin" : "sin-permiso";
+}
+
+export async function iniciarSesion(email: string, password: string): Promise<void> {
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+}
+
+export async function cerrarSesion(): Promise<void> {
+  await sb.auth.signOut();
+}
+
+export async function actualizarSerieAdmin(id: string, cambios: CambiosSerie): Promise<void> {
+  const { error } = await sb.rpc("admin_actualizar_serie", { p_id: id, p_cambios: cambios });
+  if (error) throw error;
+  const cache = seriesEnCache();
+  const s = cache.find(x => x.id === id);
+  if (s) { Object.assign(s, cambios); escribirLocal(CLAVE_SERIES, cache); }
 }
