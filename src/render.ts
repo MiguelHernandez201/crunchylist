@@ -24,8 +24,9 @@ const pasaFiltro = (s: Serie, filter: Filtro): boolean =>
   (filter === "new" && s.st === "new") ||
   (filter === "next" && !!s.nextWhen);
 
+// Las descartadas solo se ven en su filtro; en el resto no cuentan ni se priorizan.
 export const filtrar = (series: Serie[], { filter, q }: { filter: Filtro; q: string }): Serie[] =>
-  series.filter(s => coincide(s, q) && pasaFiltro(s, filter));
+  series.filter(s => coincide(s, q) && (filter === "desc" ? !!s.descartada : !s.descartada && pasaFiltro(s, filter)));
 
 function tarjeta(s: Serie, editando: string | null): string {
   const vistos = vistosDe(s);
@@ -49,11 +50,13 @@ function tarjeta(s: Serie, editando: string | null): string {
     : (s.audioES === false ? ""
     : (s.dub ? '<span class="dub pend" title="El watchlist marca doblaje, pero falta confirmar si es al español">DOB?</span>' : ""));
   const id = esc(s.id);
-  const edicion = editando === s.id
-    ? `<div class="row upd-row"><input class="upd-in" type="number" min="0" inputmode="numeric" value="${vistos}" aria-label="Capítulos vistos"> <button class="upd-ok" data-id="${id}">Guardar</button> <button class="upd-cancel">Cancelar</button></div>`
-    : `<div class="row upd-row"><button class="upd" data-id="${id}">Actualizar progreso</button></div>`;
+  const edicion = s.descartada
+    ? `<div class="row upd-row"><button class="restaurar" data-id="${id}">Restaurar a mi lista</button></div>`
+    : editando === s.id
+      ? `<div class="row upd-row"><input class="upd-in" type="number" min="0" inputmode="numeric" value="${vistos}" aria-label="Capítulos vistos"> <button class="upd-ok" data-id="${id}">Guardar</button> <button class="upd-cancel">Cancelar</button></div>`
+      : `<div class="row upd-row"><button class="upd" data-id="${id}">Actualizar progreso</button> <button class="descartar" data-id="${id}" title="Quitarla de mi lista y de la priorización">Descartar</button></div>`;
   return `
-    <div class="item${s.st === "fin" ? " done" : ""}">
+    <div class="item${s.st === "fin" || s.descartada ? " done" : ""}">
       <img class="thumb" src="${esc(s.thumb)}" alt="Póster de ${esc(s.t)}" loading="lazy">
       <div class="info">
         <div class="row">
@@ -63,7 +66,7 @@ function tarjeta(s: Serie, editando: string | null): string {
             <span class="tier${s.tier >= 9 ? " baja" : ""}" tabindex="0" role="note" aria-label="Regla ${s.tier}: ${REGLAS[s.tier]}" data-regla="Regla ${s.tier}: ${REGLAS[s.tier]}">P${s.tier}</span>
             ${s.addedPos ? `<span class="pos" title="Posición en tu watchlist por fecha de agregado">#${s.addedPos}</span>` : ""}
             ${dubTag}
-            <span class="badge ${CLS[s.st]}">${LABEL[s.st]}</span>
+            ${s.descartada ? '<span class="badge">Descartada</span>' : `<span class="badge ${CLS[s.st]}">${LABEL[s.st]}</span>`}
           </span>
         </div>
         <div class="row prog"><span>${progText}${pend != null ? ` · faltan ${pend}` : ""}</span>${nextText}</div>

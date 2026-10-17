@@ -124,3 +124,8 @@ h1 { font-size: 1.5rem; margin: 0 0 4px; text-wrap: balance; }
 .adm-msg { font-size: 0.8rem; color: var(--ok); }
 .adm-msg.error { color: var(--warn); }
 @media (max-width: 520px) { .adm-fila { grid-template-columns: 48px repeat(2, minmax(0, 1fr)); } .adm-cuando { grid-column: 1 / -1; } }
+
+/* Descartar / restaurar */
+.descartar, .restaurar { border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--muted); }
+.descartar:hover, .descartar:focus-visible { color: var(--warn); border-color: var(--warn); }
+.restaurar { color: var(--accent); border-color: var(--accent); }
