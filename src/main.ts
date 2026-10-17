@@ -82,7 +82,12 @@ async function iniciar(): Promise<void> {
 
   // 2. Refrescar desde Supabase
   try {
-    const [series, progreso, descartadas] = await Promise.all([cargarSeries(), cargarProgreso(), cargarDescartadas()]);
+    // Las descartadas son opcionales: si su tabla aún no existe, la lista carga igual.
+    const descartadasOpcionales = cargarDescartadas().catch(e => {
+      console.error("No se pudieron cargar las series descartadas:", e);
+      return descartadasEnCache();
+    });
+    const [series, progreso, descartadas] = await Promise.all([cargarSeries(), cargarProgreso(), descartadasOpcionales]);
     estado.series = series;
     aplicarProgreso(progreso);
     aplicarDescartadas(descartadas);
