@@ -25,6 +25,7 @@ Otra forma: pegar los dos archivos, en ese orden, en el *SQL Editor* de Supabase
 El panel de administración tiene una pestaña **Propuestas**. Una Edge Function de Supabase (`supabase/functions/anilist-propuestas`) consulta AniList y escribe propuestas; **nada cambia en el catálogo hasta que un administrador las acepta**.
 
 - **Vincular:** busca cada serie en AniList por título y propone su id (`series.anilist_id`). Sirve para que las demás propuestas sepan a qué serie de AniList corresponde. Cada coincidencia se marca *exacta* o *aproximada*; las dudosas se rechazan y el id se puede escribir a mano en la fila de la serie.
+- **Temporadas:** AniList registra cada temporada como un anime aparte. El vínculo puede apuntar a cualquier temporada: la función sigue la cadena de secuelas (relación *SEQUEL*, sin películas) hasta la última temporada que ya emite y usa esa. En series con varias temporadas no propone `total`, solo el próximo episodio o quitarlo.
 - **Próximo episodio:** para las series vinculadas propone el número y el **día** de emisión (sin hora), en la zona `America/Bogota`. Se cambia con el secreto `ZONA_HORARIA`.
 - **Serie terminada:** si AniList la da por terminada, propone su total de episodios y quitar el próximo episodio.
 - El doblaje no se toca: sigue siendo manual.
