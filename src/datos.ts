@@ -88,7 +88,19 @@ export function escucharProgreso(alCambiar: (id: string, vistos: number) => void
 
 // --- Administración (requiere sesión de un usuario listado en public.admins) ---
 
-export type CambiosSerie = Partial<Pick<Serie, "total" | "totalTodas" | "nextEp" | "nextWhen">>;
+export type CambiosDatos = Partial<Pick<Serie, "total" | "totalTodas" | "nextEp" | "nextWhen">>;
+export type CambiosSerie = CambiosDatos & { anilist_id?: number | null };
+
+export interface Propuesta {
+  id: number;
+  serie_id: string;
+  tipo: "vincular" | "episodio" | "finalizada";
+  propuesto: Record<string, unknown>;
+  actual: Record<string, unknown>;
+  creada: string;
+}
+
+export interface ResumenBusqueda { error?: string; [clave: string]: unknown }
 
 export type RolSesion = "admin" | "sin-permiso" | "sin-sesion";
 
@@ -112,7 +124,39 @@ export async function cerrarSesion(): Promise<void> {
 export async function actualizarSerieAdmin(id: string, cambios: CambiosSerie): Promise<void> {
   const { error } = await sb.rpc("admin_actualizar_serie", { p_id: id, p_cambios: cambios });
   if (error) throw error;
+  const { anilist_id: _vinculo, ...datos } = cambios; // anilist_id es una columna, no va en series.data
   const cache = seriesEnCache();
   const s = cache.find(x => x.id === id);
-  if (s) { Object.assign(s, cambios); escribirLocal(CLAVE_SERIES, cache); }
+  if (s) { Object.assign(s, datos); escribirLocal(CLAVE_SERIES, cache); }
+}
+
+/** id de la serie → id en AniList. Aparte de cargarSeries para que la lista pública no dependa de esta columna. */
+export async function cargarVinculos(): Promise<Record<string, number | null>> {
+  const { data, error } = await sb.from("series").select("id,anilist_id").returns<{ id: string; anilist_id: number | null }[]>();
+  if (error) throw error;
+  return Object.fromEntries(data.map(d => [d.id, d.anilist_id]));
+}
+
+export async function cargarPropuestas(): Promise<Propuesta[]> {
+  const { data, error } = await sb.from("propuestas")
+    .select("id,serie_id,tipo,propuesto,actual,creada").eq("estado", "pendiente").order("creada", { ascending: false })
+    .returns<Propuesta[]>();
+  if (error) throw error;
+  return data;
+}
+
+export async function resolverPropuesta(id: number, aceptar: boolean): Promise<void> {
+  const { error } = await sb.rpc("admin_resolver_propuesta", { p_id: id, p_aceptar: aceptar });
+  if (error) throw error;
+}
+
+/** Ejecuta la Edge Function que consulta AniList y escribe propuestas. Puede tardar un minuto. */
+export async function buscarActualizaciones(accion: "todo" | "actualizar" | "vincular"): Promise<ResumenBusqueda> {
+  const { data, error } = await sb.functions.invoke<ResumenBusqueda>("anilist-propuestas", { body: { accion } });
+  if (error) {
+    let detalle = error.message;
+    try { detalle = (await (error as { context?: Response }).context?.json())?.error ?? detalle; } catch { /* sin cuerpo */ }
+    throw new Error(detalle);
+  }
+  return data ?? {};
 }

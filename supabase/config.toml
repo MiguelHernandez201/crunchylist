@@ -1,0 +1,5 @@
+project_id = "crunchylist"
+
+# La función valida ella misma que quien llama sea administrador (ver index.ts).
+[functions.anilist-propuestas]
+verify_jwt = false
