@@ -4,3 +4,4 @@ dist/
 *.local
 paquete/
 .DS_Store
+supabase/.temp/

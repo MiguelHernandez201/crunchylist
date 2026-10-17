@@ -2,11 +2,12 @@
 // un administrador las acepta o rechaza desde el panel.
 //
 // Acciones (cuerpo JSON {"accion": ...}):
-//   "actualizar"  series con anilist_id → propone próximo episodio (solo el día) o cierre de serie terminada.
+//   "actualizar"  series con anilist_id → sigue la cadena de secuelas hasta la temporada vigente y propone
+//                 próximo episodio (solo el día) o cierre de serie terminada.
 //   "vincular"    series sin anilist_id → propone la mejor coincidencia por título (hasta `limite` por llamada).
 //   "todo"        las dos anteriores (por defecto).
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { evaluarCoincidencia, proponer, type MediaAniList } from "./logica.ts";
+import { evaluarCoincidencia, proponer, temporadasVigentes, type MediaAniList, type MediaConRelaciones } from "./logica.ts";
 
 const URL_ANILIST = "https://graphql.anilist.co";
 // Zona en la que se calcula el "día de emisión". Se puede cambiar con el secreto ZONA_HORARIA.
@@ -25,7 +26,7 @@ interface FilaSerie {
   id: string;
   titulo: string;
   anilist_id: number | null;
-  data: { total?: number | null; nextEp?: number | null; nextWhen?: string | null };
+  data: { total?: number | null; nextEp?: number | null; nextWhen?: string | null; seasons?: string[] | null };
 }
 
 interface Deseada {
@@ -57,7 +58,8 @@ async function anilist<T>(query: string, variables: Record<string, unknown>): Pr
 }
 
 const CAMPOS = "id status episodes format seasonYear title { romaji english native } nextAiringEpisode { episode airingAt }";
-const Q_POR_IDS = `query ($ids: [Int], $n: Int) { Page(perPage: $n) { media(id_in: $ids, type: ANIME) { ${CAMPOS} } } }`;
+const RELACIONES = "relations { edges { relationType node { id type format } } }";
+const Q_POR_IDS = `query ($ids: [Int], $n: Int) { Page(perPage: $n) { media(id_in: $ids, type: ANIME) { ${CAMPOS} ${RELACIONES} } } }`;
 const Q_BUSCAR = `query ($q: String) { Page(perPage: 3) { media(search: $q, type: ANIME, sort: SEARCH_MATCH) { ${CAMPOS} } } }`;
 
 /** Solo pasan el service role (tareas programadas) o un usuario que esté en public.admins. */
@@ -106,19 +108,18 @@ async function actualizar(series: FilaSerie[]) {
   const vinculadas = new Map(series.filter(s => s.anilist_id != null).map(s => [s.anilist_id!, s]));
   const ids = [...vinculadas.keys()];
   const deseadas: Deseada[] = [];
-  for (let i = 0; i < ids.length; i += 50) {
-    const lote = ids.slice(i, i + 50);
-    const d = await anilist<{ Page: { media: MediaAniList[] } }>(Q_POR_IDS, { ids: lote, n: lote.length });
-    for (const media of d.Page.media) {
-      const s = vinculadas.get(media.id);
-      if (!s) continue;
-      const actual = { total: s.data.total ?? null, nextEp: s.data.nextEp ?? null, nextWhen: s.data.nextWhen ?? null };
-      const p = proponer(actual, media, ZONA);
-      if (p) deseadas.push({ serie_id: s.id, tipo: p.tipo, propuesto: p.propuesto as Record<string, unknown>, actual });
-    }
+  const vigentes = await temporadasVigentes(ids, async lote =>
+    (await anilist<{ Page: { media: MediaConRelaciones[] } }>(Q_POR_IDS, { ids: lote, n: lote.length })).Page.media);
+  let enOtraTemporada = 0;
+  for (const [anilistId, media] of vigentes) {
+    const s = vinculadas.get(anilistId)!;
+    if (media.id !== anilistId) enOtraTemporada++;
+    const actual = { total: s.data.total ?? null, nextEp: s.data.nextEp ?? null, nextWhen: s.data.nextWhen ?? null };
+    const p = proponer(actual, media, ZONA, (s.data.seasons?.length ?? 0) > 1);
+    if (p) deseadas.push({ serie_id: s.id, tipo: p.tipo, propuesto: p.propuesto as Record<string, unknown>, actual });
   }
   const r = await sincronizar(["episodio", "finalizada"], deseadas);
-  return { series_vinculadas: ids.length, propuestas_episodio_o_cierre: deseadas.length, ...r };
+  return { series_vinculadas: ids.length, en_temporada_posterior: enOtraTemporada, propuestas_episodio_o_cierre: deseadas.length, ...r };
 }
 
 async function vincular(series: FilaSerie[], limite: number) {
