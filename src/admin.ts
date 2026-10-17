@@ -2,11 +2,12 @@
 import {
   actualizarSerieAdmin, cargarSeries, cerrarSesion, iniciarSesion, rolDeSesion, type CambiosSerie,
 } from "./datos";
+import { ALERTAS, alertasDe, type CodigoAlerta } from "./alertas";
 import { calendarioATexto, textoACalendario } from "./fechas";
 import { esc, normalizarBusqueda } from "./render";
 import type { Serie } from "./types";
 
-type FiltroAdmin = "todas" | "sin-total" | "con-proximo" | "sin-proximo";
+type FiltroAdmin = "todas" | "alertas" | CodigoAlerta | "con-proximo" | "sin-proximo";
 
 interface Ganchos {
   alCambiar: (id: string, cambios: CambiosSerie) => void;
@@ -18,29 +19,56 @@ let ganchos: Ganchos;
 
 const FILTROS: [FiltroAdmin, string][] = [
   ["todas", "Todas"],
-  ["sin-total", "Sin total de episodios"],
+  ["alertas", "Con alertas"],
+  ["sin-total", "Sin total"],
+  ["vencido", "Próximo vencido"],
+  ["incoherente", "Totales incoherentes"],
+  ["sin-verificar", "Temporada sin verificar"],
+  ["doblaje", "Doblaje sin confirmar"],
   ["con-proximo", "Con próximo episodio"],
   ["sin-proximo", "Sin próximo episodio"],
 ];
 
+const alertas = new Map<string, CodigoAlerta[]>();
+function calcularAlertas(): void {
+  const ahora = new Date();
+  alertas.clear();
+  estado.series.forEach(s => alertas.set(s.id, alertasDe(s, ahora)));
+}
+
 const pasa = (s: Serie): boolean => {
   if (estado.q && !normalizarBusqueda(`${s.t} ${s.alt || ""} ${s.id}`).includes(estado.q)) return false;
+  const a = alertas.get(s.id) ?? [];
   switch (estado.filtro) {
-    case "sin-total": return !s.total && !s.totalTodas;
+    case "todas": return true;
+    case "alertas": return a.length > 0;
     case "con-proximo": return !!s.nextWhen;
     case "sin-proximo": return !s.nextWhen;
-    default: return true;
+    default: return a.includes(estado.filtro);
   }
 };
 
+/** Cuántas series cumplen cada filtro de alerta (sin considerar la búsqueda). */
+function contar(f: FiltroAdmin): number | null {
+  if (f === "todas" || f === "con-proximo" || f === "sin-proximo") return null;
+  return [...alertas.values()].filter(a => (f === "alertas" ? a.length > 0 : a.includes(f))).length;
+}
+
 const num = (v: number | null): string => (v == null ? "" : String(v));
+
+function etiquetasAlerta(s: Serie): string {
+  const a = alertas.get(s.id) ?? [];
+  return a.length
+    ? `<div class="adm-alertas">${a.map(c => `<span title="${esc(ALERTAS[c].largo)}">${esc(ALERTAS[c].corto)}</span>`).join("")}</div>`
+    : "";
+}
 
 function fila(s: Serie): string {
   const id = esc(s.id);
   return `
     <form class="adm-fila" data-id="${id}" novalidate>
       <img class="adm-thumb" src="${esc(s.thumb)}" alt="" loading="lazy">
-      <div class="adm-titulo"><b>${esc(s.t)}</b><span>${id}${s.temp ? " · temporada actual" : ""}</span></div>
+      <div class="adm-titulo"><b>${esc(s.t)}</b><span>${id}${s.temp ? " · temporada actual" : ""}</span>${etiquetasAlerta(s)}</div>
       <label>Total temporada<input name="total" type="number" min="1" inputmode="numeric" value="${num(s.total)}"></label>
       <label>Total de todas<input name="totalTodas" type="number" min="1" inputmode="numeric" value="${num(s.totalTodas)}"></label>
       <label>Próximo cap.<input name="nextEp" type="number" min="1" inputmode="numeric" value="${num(s.nextEp)}"></label>
@@ -49,7 +77,18 @@ function fila(s: Serie): string {
     </form>`;
 }
 
+function pintarChips(): void {
+  raiz.querySelectorAll<HTMLElement>("[data-adm-f]").forEach(chip => {
+    const f = chip.dataset.admF as FiltroAdmin;
+    const n = contar(f);
+    const base = FILTROS.find(x => x[0] === f)![1];
+    chip.textContent = n == null ? base : `${base} (${n})`;
+  });
+}
+
 function pintarLista(): void {
+  calcularAlertas();
+  pintarChips();
   const items = estado.series.filter(pasa);
   const lista = raiz.querySelector<HTMLElement>("#adm-lista");
   const cuenta = raiz.querySelector<HTMLElement>("#adm-cuenta");
@@ -157,6 +196,11 @@ async function guardarFila(form: HTMLFormElement): Promise<void> {
     Object.assign(s, cambios);
     ganchos.alCambiar(s.id, cambios);
     msg.textContent = "Guardado.";
+    calcularAlertas();
+    pintarChips();
+    const cont = form.querySelector<HTMLElement>(".adm-titulo");
+    cont?.querySelector(".adm-alertas")?.remove();
+    cont?.insertAdjacentHTML("beforeend", etiquetasAlerta(s));
   } catch (e) {
     console.error(e);
     msg.textContent = "No se pudo guardar (¿sesión vencida o sin permisos?).";
