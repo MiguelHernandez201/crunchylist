@@ -27,6 +27,10 @@
     </button>
   </div>
   <p class="tip-ios" id="tip-ios" hidden>Para instalarla en tu iPhone: toca <b>Compartir</b> y luego <b>Añadir a pantalla de inicio</b>. <button type="button" id="tip-ios-cerrar">Entendido</button></p>
+  <div class="vistas" role="group" aria-label="Vista">
+    <button class="chip" type="button" data-vista="lista" aria-pressed="true">Lista</button>
+    <button class="chip" type="button" data-vista="calendario" aria-pressed="false">Calendario</button>
+  </div>
   <p class="sub" id="sub">Cargando series…</p>
 
   <div class="summary" id="summary"></div>
@@ -91,6 +95,7 @@
 
   <div class="list" id="list"></div>
 </div>
+<div id="vista-calendario" hidden></div>
 <div id="vista-admin" hidden></div>
 </div>
 <script type="module" src="/src/main.ts"></script>

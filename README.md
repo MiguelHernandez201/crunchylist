@@ -13,6 +13,17 @@ npm run typecheck  # verificación de tipos (también corre en build)
 
 La URL de Supabase y la publishable key están en `.env`. Son públicas: terminan en el bundle del navegador.
 
+## Modo calendario
+
+Con el selector **Lista | Calendario** (o abriendo `#calendario`) se ve un calendario mensual con dos tipos de fecha del catálogo:
+
+- **Estrenos:** `series.estreno` (por ejemplo `4 de octubre`).
+- **Próximos episodios:** `series.nextWhen` (por ejemplo `dom 18 oct`), el mismo dato que se edita en el panel de administración o se acepta desde las propuestas de AniList.
+
+Pulsa un día para ver sus series debajo, con la regla de prioridad (P1–P10) y tu progreso. Las series descartadas no aparecen. En el celular cada día muestra puntos (naranja = estreno, verde = próximo episodio); en pantallas anchas, los títulos.
+
+Solo se muestran fechas que existen en el catálogo; no se proyectan episodios futuros a partir de un patrón semanal. Como esas fechas se guardan sin año, se asume el de la temporada en curso (`src/config.ts`), ajustado si cae a más de 6 meses de su inicio.
+
 ## Base de datos
 
 1. Copiar `.env.local.example` a `.env.local` y poner la contraseña de la base de datos (este archivo no se sube a git).
@@ -68,6 +79,7 @@ En el repositorio, ir a *Settings → Pages → Source* y elegir **GitHub Action
 | `src/datos.ts` | Supabase y la caché en `localStorage` |
 | `src/prioridad.ts` | Reglas P1–P10, estado derivado y ordenamiento |
 | `src/render.ts` | Tarjetas, resumen y filtros |
+| `src/calendario.ts`, `src/vistaCalendario.ts` | Fechas como eventos, cuadrícula mensual y vista de calendario |
 | `src/config.ts` | Temporada en curso y textos de las reglas |
 | `src/instalar.ts` | Botón e indicación para instalar la aplicación |
 | `public/thumbs135/` | Miniaturas de las series |

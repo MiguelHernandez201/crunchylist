@@ -154,3 +154,39 @@ h1 { font-size: 1.5rem; margin: 0 0 4px; text-wrap: balance; }
 .tip-ios { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin: 0 0 12px; font-size: 0.82rem; color: var(--muted); }
 .tip-ios b { color: var(--fg); }
 .tip-ios button { font: inherit; font-size: 0.78rem; margin-left: 6px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+
+/* Selector de vista y calendario */
+.vistas { display: flex; gap: 8px; margin-bottom: 14px; }
+.cal-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.cal-titulo { flex: 1 1 auto; margin: 0; font-size: 1.15rem; text-align: center; }
+.cal-flecha, .cal-hoy { font: inherit; font-size: 0.95rem; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--fg); border-radius: 8px; height: 34px; padding: 0 12px; }
+.cal-flecha { width: 36px; padding: 0; font-size: 1.2rem; line-height: 1; }
+.cal-flecha:hover, .cal-hoy:hover { border-color: var(--accent); color: var(--accent); }
+.pto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+.pto.estreno { background: var(--accent); }
+.pto.episodio { background: var(--ok); }
+.cal-chip { display: inline-flex; align-items: center; gap: 6px; }
+.cal-chip[aria-pressed="true"] .pto { box-shadow: 0 0 0 2px #fff; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-bottom: 18px; }
+.cal-sem { text-align: center; font-size: 0.72rem; color: var(--muted); padding-bottom: 2px; }
+.cal-dia { font: inherit; text-align: left; cursor: pointer; background: var(--card); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 4px 5px; min-height: 52px; min-width: 0; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+.cal-dia:hover { border-color: var(--accent); }
+.cal-dia.fuera { opacity: .45; }
+.cal-dia.hoy .cal-num { background: var(--accent); color: #fff; border-radius: 999px; padding: 0 6px; align-self: flex-start; }
+.cal-dia.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.cal-num { font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.cal-puntos { display: flex; flex-wrap: wrap; gap: 3px; }
+.cal-textos { display: none; flex-direction: column; gap: 2px; min-width: 0; }
+.cal-txt { font-size: 0.7rem; line-height: 1.2; border-left: 3px solid var(--accent); padding-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-txt.episodio { border-left-color: var(--ok); }
+.cal-mas { font-size: 0.68rem; color: var(--muted); }
+@media (min-width: 640px) {
+  .cal-dia { min-height: 96px; }
+  .cal-puntos { display: none; }
+  .cal-textos { display: flex; }
+}
+.cal-detalle h3 { font-size: 1rem; margin: 0 0 10px; }
+.cal-item .thumb { flex-basis: 48px; width: 48px; }
+.cal-tag { font-size: 0.72rem; border-radius: 4px; padding: 2px 6px; border: 1px solid var(--accent); color: var(--accent); white-space: nowrap; }
+.cal-tag.episodio { border-color: var(--ok); color: var(--ok); }

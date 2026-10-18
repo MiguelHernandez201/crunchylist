@@ -1,6 +1,7 @@
 import "./style.css";
 import { abrirAdmin, montarAdmin } from "./admin";
 import { montarInstalacion } from "./instalar";
+import { montarCalendario, pintarCalendario } from "./vistaCalendario";
 import { TEMPORADA } from "./config";
 import { ordenar, recalcularPrioridades } from "./prioridad";
 import { filtrar, normalizarBusqueda, renderLista, renderResumen } from "./render";
@@ -52,6 +53,7 @@ function render(): void {
   renderLista($("list"), items, estado);
   renderResumen($("summary"), activas);
   $("chip-desc").textContent = descartadas ? `Descartadas (${descartadas})` : "Descartadas";
+  if (location.hash === "#calendario") pintarCalendario();
   if (estado.series.length) {
     $("sub").textContent = `Las ${activas.length} series de tu watchlist. El chip DOB ES marca doblaje al español disponible.`;
   }
@@ -117,10 +119,15 @@ async function iniciar(): Promise<void> {
 
 function aplicarVista(): void {
   const admin = location.hash === "#admin";
-  $("vista-lista").hidden = admin;
+  const calendario = location.hash === "#calendario";
+  $("vista-lista").hidden = admin || calendario;
+  $("vista-calendario").hidden = !calendario;
   $("vista-admin").hidden = !admin;
   if (admin) void abrirAdmin();
+  if (calendario) pintarCalendario();
 }
+
+montarCalendario($("vista-calendario"), { series: () => estado.series.filter(s => !s.descartada) });
 
 montarAdmin($("vista-admin"), {
   volver: () => { location.hash = ""; },
@@ -136,6 +143,9 @@ window.addEventListener("hashchange", () => { aplicarVista(); if (location.hash 
 
 document.addEventListener("click", async ev => {
   const destino = ev.target as HTMLElement;
+
+  const vista = destino.closest<HTMLElement>("[data-vista]");
+  if (vista) { location.hash = vista.dataset.vista === "calendario" ? "calendario" : ""; return; }
 
   const abrir = destino.closest<HTMLElement>(".upd");
   if (abrir) { estado.editando = abrir.dataset.id ?? null; render(); return; }
