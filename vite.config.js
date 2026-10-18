@@ -6,7 +6,8 @@ export default defineConfig({
   base: "./",
   plugins: [
     VitePWA({
-      registerType: "autoUpdate", // una versión nueva se activa sola en la siguiente apertura
+      registerType: "autoUpdate", // la versión nueva se activa sola; src/pwa.ts la registra y recarga o avisa
+      injectRegister: false,
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {
         name: "CrunchyList",
@@ -31,6 +32,9 @@ export default defineConfig({
         globIgnores: ["thumbs135/**"],
         navigateFallback: "index.html",
         cleanupOutdatedCaches: true,
+        // La versión nueva se activa en cuanto se descarga y toma el control de las ventanas abiertas (ver src/pwa.ts).
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.includes("/thumbs135/"),

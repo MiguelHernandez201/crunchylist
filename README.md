@@ -60,7 +60,7 @@ Qué se guarda para usarla sin conexión: la propia aplicación (al instalar, ~3
 
 Notas:
 - Solo funciona desde la versión publicada (`npm run build` + `npm run preview` para probarla en local). `npm run dev` no registra el service worker.
-- Las actualizaciones se descargan solas: al abrir la app con conexión baja la versión nueva y se aplica la siguiente vez que la abras (ciérrala y ábrela).
+- **Actualizaciones:** la aplicación busca versiones nuevas al abrirla, al volver a ella y cada 30 minutos. Si la versión nueva llega en los primeros segundos tras abrir, la página se recarga sola; si llega con la app ya en uso, aparece un aviso con el botón **Actualizar** (no recarga sola para no perder lo que estés escribiendo). El registro del service worker está en `src/pwa.ts`.
 - La aplicación instalada tiene su propio almacenamiento: la sesión de administrador se inicia de nuevo dentro de ella.
 - Los íconos están en `public/` (`pwa-192x192.png`, `pwa-512x512.png`, `pwa-maskable-512x512.png` y `apple-touch-icon.png`) y salen del logo de `public/favicon.svg`. La configuración del manifiesto y del service worker está en `vite.config.js`.
 

@@ -190,3 +190,10 @@ h1 { font-size: 1.5rem; margin: 0 0 4px; text-wrap: balance; }
 .cal-item .thumb { flex-basis: 48px; width: 48px; }
 .cal-tag { font-size: 0.72rem; border-radius: 4px; padding: 2px 6px; border: 1px solid var(--accent); color: var(--accent); white-space: nowrap; }
 .cal-tag.episodio { border-color: var(--ok); color: var(--ok); }
+
+/* Aviso de versión nueva */
+.aviso-version { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 12px;
+  background: var(--fg); color: var(--bg); border-radius: 10px; padding: 10px 14px; font-size: 0.88rem; box-shadow: 0 4px 18px rgba(0,0,0,.3);
+  max-width: calc(100vw - 32px); }
+.aviso-version[hidden] { display: none; }
+.aviso-version button { font: inherit; font-size: 0.85rem; cursor: pointer; border: 0; border-radius: 6px; padding: 5px 12px; background: var(--accent); color: #fff; }
