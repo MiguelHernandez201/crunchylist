@@ -21,12 +21,16 @@ export interface MediaConRelaciones extends MediaAniList {
 
 export interface DatosSerie {
   total: number | null;
+  totalTodas: number | null;
   nextEp: number | null;
   nextWhen: string | null;
+  seasons: string[] | null;
 }
 
 export interface Cambios {
   total?: number;
+  totalTodas?: number;
+  seasons?: string[];
   nextEp?: number | null;
   nextWhen?: string | null;
 }
@@ -116,21 +120,71 @@ export async function temporadasVigentes(
   return vigentes;
 }
 
+const conteoDeTemporada = (t: string): number | null => {
+  const m = t.match(/:\s*(\d+)\s*$/);
+  return m ? Number(m[1]) : null;
+};
+
+/** Episodios de las temporadas anteriores a la última de la lista ("Temporada 1: 12", ...). null si algún conteo no se entiende. */
+export function episodiosPrevios(seasons: string[] | null): number | null {
+  const previas = (seasons ?? []).slice(0, -1).map(conteoDeTemporada);
+  return previas.some(c => c === null) ? null : previas.reduce<number>((suma, c) => suma + (c as number), 0);
+}
+
+/** La lista de temporadas con el conteo de la última reemplazado ("Temporada 3: 3" → "Temporada 3: 4"). */
+function conUltimaTemporada(seasons: string[], cuenta: number): string[] {
+  const ultima = seasons[seasons.length - 1];
+  const i = ultima.lastIndexOf(":");
+  return i < 0 ? seasons : [...seasons.slice(0, -1), `${ultima.slice(0, i + 1)} ${cuenta}`];
+}
+
+/**
+ * Totales que quedan atrasados cuando salen episodios: en una serie en emisión `total` y `totalTodas` cuentan lo ya
+ * publicado, y la app los usa para saber cuánto te falta por ver. `publicados` es lo emitido de la temporada vigente
+ * (próximo episodio − 1). Solo sube conteos, nunca los baja. Con varias temporadas no se toca `total`: a veces es el
+ * de la temporada y a veces la suma, y AniList solo conoce la vigente.
+ */
+function conteosAlDia(actual: DatosSerie, publicados: number): Cambios {
+  const previos = episodiosPrevios(actual.seasons);
+  if (previos === null || publicados < 1) return {};
+  const cambios: Cambios = {};
+  if ((actual.totalTodas ?? 0) < previos + publicados) cambios.totalTodas = previos + publicados;
+  const temporadas = actual.seasons ?? [];
+  if (temporadas.length <= 1 && (actual.total ?? 0) < publicados) cambios.total = publicados;
+  if (temporadas.length && (conteoDeTemporada(temporadas[temporadas.length - 1]) ?? 0) < publicados) {
+    const nuevas = conUltimaTemporada(temporadas, publicados);
+    if (JSON.stringify(nuevas) !== JSON.stringify(temporadas)) cambios.seasons = nuevas;
+  }
+  return cambios;
+}
+
 /**
  * Qué cambiaría AniList en una serie, o null si ya coincide o si AniList no sabe nada útil.
- * `media` debe ser la temporada vigente. Con varias temporadas no se propone `total`: el catálogo lo usa
- * a veces como total de la temporada y a veces como suma de todas, y AniList solo da la temporada.
+ * `media` debe ser la temporada vigente.
+ * - Con próximo episodio: propone el número y el día, y pone al día los totales de lo ya publicado.
+ * - Terminada: propone el total de la temporada y quita el próximo episodio.
  */
-export function proponer(actual: DatosSerie, media: MediaAniList, zona: string, variasTemporadas = false): PropuestaCalculada | null {
+export function proponer(actual: DatosSerie, media: MediaAniList, zona: string): PropuestaCalculada | null {
   const siguiente = media.nextAiringEpisode;
   if (siguiente) {
     const dia = diaDeEmision(siguiente.airingAt, zona);
-    if (actual.nextEp === siguiente.episode && soloDia(actual.nextWhen) === dia) return null;
-    return { tipo: "episodio", propuesto: { nextEp: siguiente.episode, nextWhen: dia } };
+    const conteos = conteosAlDia(actual, siguiente.episode - 1);
+    const mismaFecha = actual.nextEp === siguiente.episode && soloDia(actual.nextWhen) === dia;
+    if (mismaFecha && Object.keys(conteos).length === 0) return null;
+    return { tipo: "episodio", propuesto: { nextEp: siguiente.episode, nextWhen: dia, ...conteos } };
   }
   if (media.status === "FINISHED") {
     const propuesto: Cambios = {};
-    if (!variasTemporadas && media.episodes && actual.total !== media.episodes) propuesto.total = media.episodes;
+    const previos = episodiosPrevios(actual.seasons);
+    if (media.episodes && previos !== null) {
+      const temporadas = actual.seasons ?? [];
+      if (actual.totalTodas !== previos + media.episodes) propuesto.totalTodas = previos + media.episodes;
+      if (temporadas.length <= 1 && actual.total !== media.episodes) propuesto.total = media.episodes;
+      if (temporadas.length && conteoDeTemporada(temporadas[temporadas.length - 1]) !== media.episodes) {
+        const nuevas = conUltimaTemporada(temporadas, media.episodes);
+        if (JSON.stringify(nuevas) !== JSON.stringify(temporadas)) propuesto.seasons = nuevas;
+      }
+    }
     if (actual.nextEp != null || actual.nextWhen != null) { propuesto.nextEp = null; propuesto.nextWhen = null; }
     return Object.keys(propuesto).length ? { tipo: "finalizada", propuesto } : null;
   }

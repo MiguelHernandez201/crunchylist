@@ -26,7 +26,7 @@ interface FilaSerie {
   id: string;
   titulo: string;
   anilist_id: number | null;
-  data: { total?: number | null; nextEp?: number | null; nextWhen?: string | null; seasons?: string[] | null };
+  data: { total?: number | null; totalTodas?: number | null; nextEp?: number | null; nextWhen?: string | null; seasons?: string[] | null };
 }
 
 interface Deseada {
@@ -114,8 +114,14 @@ async function actualizar(series: FilaSerie[]) {
   for (const [anilistId, media] of vigentes) {
     const s = vinculadas.get(anilistId)!;
     if (media.id !== anilistId) enOtraTemporada++;
-    const actual = { total: s.data.total ?? null, nextEp: s.data.nextEp ?? null, nextWhen: s.data.nextWhen ?? null };
-    const p = proponer(actual, media, ZONA, (s.data.seasons?.length ?? 0) > 1);
+    const actual = {
+      total: s.data.total ?? null,
+      totalTodas: s.data.totalTodas ?? null,
+      nextEp: s.data.nextEp ?? null,
+      nextWhen: s.data.nextWhen ?? null,
+      seasons: s.data.seasons ?? null,
+    };
+    const p = proponer(actual, media, ZONA);
     if (p) deseadas.push({ serie_id: s.id, tipo: p.tipo, propuesto: p.propuesto as Record<string, unknown>, actual });
   }
   const r = await sincronizar(["episodio", "finalizada"], deseadas);

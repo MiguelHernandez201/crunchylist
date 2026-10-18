@@ -148,6 +148,8 @@ create or replace function public.admin_resolver_propuesta(p_id bigint, p_acepta
 language plpgsql security definer set search_path = public as $$
 declare
   pr public.propuestas;
+  k text;
+  v jsonb;
 begin
   if not public.es_admin() then
     raise exception 'No autorizado' using errcode = '42501';
@@ -160,9 +162,23 @@ begin
     if pr.tipo = 'vincular' then
       update public.series set anilist_id = (pr.propuesto ->> 'anilist_id')::integer, actualizado = now() where id = pr.serie_id;
     else
-      if exists (select 1 from jsonb_object_keys(pr.propuesto) k where k not in ('total', 'nextEp', 'nextWhen')) then
-        raise exception 'La propuesta trae campos no permitidos';
-      end if;
+      for k, v in select * from jsonb_each(pr.propuesto) loop
+        if k in ('total', 'totalTodas', 'nextEp') then
+          if jsonb_typeof(v) not in ('number', 'null') or (jsonb_typeof(v) = 'number' and ((v::text)::numeric < 1 or (v::text)::numeric <> trunc((v::text)::numeric))) then
+            raise exception 'La propuesta trae un valor inválido en %', k;
+          end if;
+        elsif k = 'nextWhen' then
+          if jsonb_typeof(v) not in ('string', 'null') then
+            raise exception 'La propuesta trae un valor inválido en nextWhen';
+          end if;
+        elsif k = 'seasons' then
+          if jsonb_typeof(v) <> 'array' or exists (select 1 from jsonb_array_elements(v) e where jsonb_typeof(e) <> 'string') then
+            raise exception 'La propuesta trae un valor inválido en seasons';
+          end if;
+        else
+          raise exception 'La propuesta trae campos no permitidos';
+        end if;
+      end loop;
       update public.series set data = data || pr.propuesto, actualizado = now() where id = pr.serie_id;
     end if;
   end if;

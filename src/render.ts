@@ -1,5 +1,5 @@
 import { REGLAS, LABEL, CLS, TEMPORADA } from "./config";
-import { totalDe, vistosDe } from "./prioridad";
+import { temporadasVisibles, totalDe, vistosDe } from "./prioridad";
 import type { Filtro, Serie } from "./types";
 
 const ESC: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -40,8 +40,9 @@ function tarjeta(s: Serie, editando: string | null): string {
     ? `<span class="next">Próximo: E${esc(s.nextEp)} · ${esc(s.nextWhen)}</span>`
     : `<span class="unk">Sin episodio esta semana</span>`;
   const altText = s.alt ? `<div class="alt">Emite ahora: ${esc(s.alt)}</div>` : "";
-  const tempText = (s.seasons && s.seasons.length)
-    ? `<div class="temps">${s.seasons.map(x => { const i = x.lastIndexOf(":"); return `<span>${esc(x.slice(0, i))} <b>${esc(x.slice(i + 1).trim())}</b></span>`; }).join("")}</div>`
+  const temporadas = temporadasVisibles(s);
+  const tempText = temporadas.length
+    ? `<div class="temps">${temporadas.map(x => { const i = x.lastIndexOf(":"); return `<span>${esc(x.slice(0, i))} <b>${esc(x.slice(i + 1).trim())}</b></span>`; }).join("")}</div>`
     : "";
   const dubText = s.dubES
     ? `<div class="alt">Doblaje al español anunciado para ${TEMPORADA.nombre} · ${esc(s.dubES)}${s.dub ? "" : " (aún no disponible)"}</div>`
