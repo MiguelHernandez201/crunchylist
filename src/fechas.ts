@@ -4,7 +4,26 @@ import { TEMPORADA } from "./config";
 
 const DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const NOMBRES_MES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const dos = (n: number): string => String(n).padStart(2, "0");
+
+/** "octubre", "oct", "sept." → 10. 0 si no se entiende. */
+export function mesDeNombre(texto: string): number {
+  const n = texto.trim().toLowerCase().replace(/\.$/, "");
+  if (n === "set" || n === "setiembre") return 9;
+  if (n.length < 3) return 0;
+  return NOMBRES_MES.findIndex(m => m.startsWith(n)) + 1;
+}
+
+// Mes en que empieza la temporada en curso ("4 de octubre de 2026" → 10).
+const MES_INICIO_TEMPORADA = mesDeNombre(TEMPORADA.desde.split(" de ")[1] ?? "") || 1;
+
+/** Año de una fecha guardada sin año: el de la temporada, salvo que caiga más de 6 meses antes o después de su inicio. */
+export function anioDeMes(mes: number): number {
+  if (mes + 6 < MES_INICIO_TEMPORADA) return TEMPORADA.anio + 1;
+  if (mes - MES_INICIO_TEMPORADA > 6) return TEMPORADA.anio - 1;
+  return TEMPORADA.anio;
+}
 
 /** "dom 18 oct" o "dom 18 oct, 10:00" → "2026-10-18" (el año sale de la temporada en curso). Vacío si no se entiende. */
 export function textoAFecha(texto: string | null): string {
@@ -12,7 +31,7 @@ export function textoAFecha(texto: string | null): string {
   if (!m) return "";
   const mes = MESES.indexOf(m[2]);
   if (mes < 0) return "";
-  return `${TEMPORADA.anio}-${dos(mes + 1)}-${dos(Number(m[1]))}`;
+  return `${anioDeMes(mes + 1)}-${dos(mes + 1)}-${dos(Number(m[1]))}`;
 }
 
 /** "2026-10-18" → "dom 18 oct" (mismo formato que ya usa el catálogo). null si está vacío o es inválido. */
