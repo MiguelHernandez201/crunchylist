@@ -134,14 +134,21 @@ const textoPropuesta = (p: Propuesta): { actual: string; propuesto: string } => 
       propuesto: `<a href="https://anilist.co/anime/${esc(id)}" target="_blank" rel="noopener">«${esc(p.propuesto.titulo_anilist)}»${esc(anio)}</a> · id ${esc(id)} · coincidencia <b>${esc(p.propuesto.coincidencia)}</b>`,
     };
   }
+  // Totales: el acumulado (totalTodas) manda sobre el de la temporada, igual que en la lista.
+  const viejo = p.actual.totalTodas ?? p.actual.total;
+  const nuevo = p.propuesto.totalTodas ?? p.propuesto.total;
   if (p.tipo === "episodio") {
     const soloDia = p.actual.nextWhen ? String(p.actual.nextWhen).split(",")[0] : null; // los datos antiguos traen hora
-    return { actual: ep(p.actual.nextEp, soloDia), propuesto: ep(p.propuesto.nextEp, p.propuesto.nextWhen) };
+    const publicados = (v: unknown): string => (v == null ? "" : ` · ${esc(v)} episodios publicados`);
+    return {
+      actual: ep(p.actual.nextEp, soloDia) + publicados(viejo),
+      propuesto: ep(p.propuesto.nextEp, p.propuesto.nextWhen) + (nuevo != null ? publicados(nuevo) : ""),
+    };
   }
   const partes: string[] = [];
-  if ("total" in p.propuesto) partes.push(`total ${esc(p.propuesto.total)} episodios`);
+  if (nuevo != null) partes.push(`total ${esc(nuevo)} episodios`);
   if ("nextEp" in p.propuesto) partes.push("quitar el próximo episodio");
-  return { actual: `total ${esc(p.actual.total ?? "?")} · ${ep(p.actual.nextEp, p.actual.nextWhen)}`, propuesto: `AniList la da por terminada: ${partes.join(" y ")}` };
+  return { actual: `total ${esc(viejo ?? "?")} · ${ep(p.actual.nextEp, p.actual.nextWhen)}`, propuesto: `AniList la da por terminada: ${partes.join(" y ")}` };
 };
 
 const ETIQUETA_TIPO: Record<Propuesta["tipo"], string> = { vincular: "Vincular con AniList", episodio: "Próximo episodio", finalizada: "Serie terminada" };

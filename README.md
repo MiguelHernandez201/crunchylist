@@ -39,6 +39,7 @@ El panel de administración tiene una pestaña **Propuestas**. Una Edge Function
 - **Temporadas:** AniList registra cada temporada como un anime aparte. El vínculo puede apuntar a cualquier temporada: la función sigue la cadena de secuelas (relación *SEQUEL*, sin películas) hasta la última temporada que ya emite y usa esa. En series con varias temporadas no propone `total`, solo el próximo episodio o quitarlo.
 - **Próximo episodio:** para las series vinculadas propone el número y el **día** de emisión (sin hora), en la zona `America/Bogota`. Se cambia con el secreto `ZONA_HORARIA`.
 - **Serie terminada:** si AniList la da por terminada, propone su total de episodios y quitar el próximo episodio.
+- **Totales al día:** en una serie en emisión, `total` y `totalTodas` son los episodios *ya publicados* (próximo episodio − 1, más los de las temporadas anteriores). Por eso, al proponer un episodio nuevo también se propone subir esos totales y el conteo de la última temporada; si no, la app creería que ya viste todo y la dejaría como "Al día". Además, la app nunca usa un total menor que lo publicado según el próximo episodio (`src/prioridad.ts`), así que una propuesta ya aceptada con el total atrasado se corrige sola en la lista.
 - El doblaje no se toca: sigue siendo manual.
 
 Puesta en marcha (una sola vez):
