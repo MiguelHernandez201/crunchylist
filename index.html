@@ -5,16 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CrunchyList</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f5f2">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141312">
+  <!-- iPhone / iPad: instalar desde Safari con Compartir → Añadir a pantalla de inicio -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="CrunchyList">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
 <div class="wrap">
 <div id="vista-lista">
   <div class="cabecera">
     <h1>Mi watchlist de Crunchyroll</h1>
+    <button id="btn-instalar" class="icono instalar" type="button" aria-label="Instalar la aplicación" title="Instalar la aplicación" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 11l5 5 5-5"></path><path d="M5 20h14"></path></svg>
+    </button>
     <button id="btn-admin" class="icono" type="button" aria-label="Administración" title="Administración">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"></path><path d="M9 12l2 2 4-4"></path></svg>
     </button>
   </div>
+  <p class="tip-ios" id="tip-ios" hidden>Para instalarla en tu iPhone: toca <b>Compartir</b> y luego <b>Añadir a pantalla de inicio</b>. <button type="button" id="tip-ios-cerrar">Entendido</button></p>
   <p class="sub" id="sub">Cargando series…</p>
 
   <div class="summary" id="summary"></div>

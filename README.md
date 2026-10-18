@@ -38,6 +38,21 @@ Puesta en marcha (una sola vez):
 4. Opcional, otra zona horaria: `npx supabase secrets set ZONA_HORARIA=America/Mexico_City --project-ref cvlntgmdnkmynypmmrwy`
 5. En el panel, pestaña *Propuestas* → *Buscar actualizaciones en AniList*. Cada pulsación vincula hasta 20 series (AniList limita las peticiones por minuto), así que con 138 series hay que repetirlo varias veces.
 
+## Instalar como aplicación (PWA)
+
+CrunchyList es una *aplicación web instalable*: no es nativa ni pasa por tiendas. Se abre en su propia ventana, con su ícono, y funciona sin conexión con la última copia de los datos.
+
+- **Windows (Chrome o Edge):** abre la web publicada y pulsa el ícono de instalar de la barra de direcciones (o el botón con la flecha hacia abajo de la cabecera de la app). En Edge también: menú **⋯ → Aplicaciones → Instalar este sitio como una aplicación**. Queda en el menú Inicio y se puede anclar a la barra de tareas.
+- **iPhone o iPad (Safari):** abre la web, toca **Compartir** y luego **Añadir a pantalla de inicio**. En iOS tiene que ser Safari; otros navegadores no instalan.
+
+Qué se guarda para usarla sin conexión: la propia aplicación (al instalar, ~300 KB), la última lista de series y el progreso (en el almacenamiento del navegador) y las miniaturas que ya hayas visto. Los cambios de progreso necesitan conexión con Supabase.
+
+Notas:
+- Solo funciona desde la versión publicada (`npm run build` + `npm run preview` para probarla en local). `npm run dev` no registra el service worker.
+- Las actualizaciones se descargan solas: al abrir la app con conexión baja la versión nueva y se aplica la siguiente vez que la abras (ciérrala y ábrela).
+- La aplicación instalada tiene su propio almacenamiento: la sesión de administrador se inicia de nuevo dentro de ella.
+- Los íconos están en `public/` (`pwa-192x192.png`, `pwa-512x512.png`, `pwa-maskable-512x512.png` y `apple-touch-icon.png`) y salen del logo de `public/favicon.svg`. La configuración del manifiesto y del service worker está en `vite.config.js`.
+
 ## Despliegue
 
 Cada push a `main` corre `.github/workflows/deploy.yml`, que construye la app y la publica en GitHub Pages.
@@ -54,6 +69,7 @@ En el repositorio, ir a *Settings → Pages → Source* y elegir **GitHub Action
 | `src/prioridad.ts` | Reglas P1–P10, estado derivado y ordenamiento |
 | `src/render.ts` | Tarjetas, resumen y filtros |
 | `src/config.ts` | Temporada en curso y textos de las reglas |
+| `src/instalar.ts` | Botón e indicación para instalar la aplicación |
 | `public/thumbs135/` | Miniaturas de las series |
 | `supabase/` | Esquema, datos iniciales y Edge Function de AniList |
 | `docs/RELEASES.md` | Plan de releases |

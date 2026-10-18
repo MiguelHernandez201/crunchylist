@@ -1,5 +1,6 @@
 import "./style.css";
 import { abrirAdmin, montarAdmin } from "./admin";
+import { montarInstalacion } from "./instalar";
 import { TEMPORADA } from "./config";
 import { ordenar, recalcularPrioridades } from "./prioridad";
 import { filtrar, normalizarBusqueda, renderLista, renderResumen } from "./render";
@@ -209,5 +210,6 @@ document.querySelectorAll<HTMLButtonElement>(".chip").forEach(b => b.addEventLis
   render();
 }));
 
+montarInstalacion();
 aplicarVista();
 iniciar();
